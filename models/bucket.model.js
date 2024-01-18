@@ -13,7 +13,9 @@ const BucketSchema = new Schema({
         required: true
     },
     bucketPath:{
-        type:String
+        type:String,
+        unique:true,
+        required: true
     }
 },{timestamps: true});
 
