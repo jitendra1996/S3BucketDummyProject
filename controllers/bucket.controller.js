@@ -2,10 +2,11 @@ const path = require('path');
 const fs = require('fs');
 
 // Utility functions import
-const {storeBucketDetailsInDB,modifiedAllBucketListData} = require('../utils/bucket.util');
+const { storeBucketDetailsInDB , modifiedAllBucketListData,deleteFolderRecursive } = require('../utils/bucket.util');
 
 // Bucket Model import 
 const Bucket = require('../models/bucket.model');
+const uploadedFileModel = require('../models/uploadedFile.model');
 
 /**
  * Creates a new bucket.
@@ -15,13 +16,8 @@ const Bucket = require('../models/bucket.model');
  * @returns {Object} The response object with status, message, and success properties.
  * @throws {Error} If there is an error creating the bucket.
  */
-exports.postCreateBucket = (req, res) => {
+exports.postCreateBucket = async (req, res) => {
   const bucketName = req.body.bucketName;
-
-  if (!bucketName) {
-    return res.json({ status: 400, message: 'Invalid bucket name', success: false });
-  }
-
   const rootBucket = 'buckets';
   const subBucketPath = path.join(rootBucket, `${bucketName}-${req.session.user.id}`);
 
@@ -32,12 +28,10 @@ exports.postCreateBucket = (req, res) => {
 
     if (!fs.existsSync(subBucketPath)) {
       fs.mkdirSync(subBucketPath);
-      storeBucketDetailsInDB(req.session.user.id, bucketName, subBucketPath);
+      await storeBucketDetailsInDB(req.session.user.id, bucketName, subBucketPath);
     }
-
     return res.json({ status: 200, message: 'Bucket created successfully', success: true });
   } catch (error) {
-    console.error(error);
     return res.json({ status: 500, message: 'Error creating bucket', success: false });
   }
 }
@@ -96,4 +90,56 @@ exports.getParticularUserBucketsList = async (req, res) => {
         console.log("🚀 ~ exports.getParticularUserBucketsList= ~ error:", error);
         return res.status(500).json({ status: 500, message:"Error getting buckets", success:false});
     }
+};
+
+/**
+ * Deletes a bucket and its associated files from the database and file system.
+ * @param {Object} req - The request object containing the bucket name and ID.
+ * @param {Object} res - The response object used to send the result back to the client.
+ * @returns {Object} The response object with the status, message, and success flag.
+ */
+exports.deleteBucket = async (req, res) => {
+  try {
+    const { bucketName, id } = req.query;
+
+    // Check if the bucket name is valid
+    if (!bucketName) {
+      return res
+        .status(404)
+        .json({ status: 404, message: 'Invalid bucket name', success: false });
+    }
+
+    // Check if the ID is valid
+    if (!id) {
+      return res
+        .status(404)
+        .json({ status: 404, message: 'Invalid bucket ID', success: false });
+    }
+
+    // Delete the bucket from the database
+    const deletedBucket = await Bucket.findByIdAndDelete(id);
+
+    // If the bucket is not found, return an error response
+    if (!deletedBucket) {
+      return res
+        .status(404)
+        .json({ status: 400, message: 'Bucket not found', success: false });
+    }
+
+    // Delete all the files associated with the bucket from the database
+    await uploadedFileModel.deleteMany({ bucketId: id });
+
+    // Recursively delete the folder containing the bucket's files from the file system
+    deleteFolderRecursive(deletedBucket.bucketPath);
+
+    // Return a success response
+    return res
+      .status(200)
+      .json({ status: 200, message: 'Bucket deleted successfully', success: true });
+  } catch (error) {
+    // Return an error response if an exception occurs
+    return res
+      .status(500)
+      .json({ status: 500, message: `Error deleting bucket: ${error.message}`, success: false });
+  }
 };

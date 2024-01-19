@@ -13,14 +13,18 @@ const path = require('path');
 exports.isBucketAlreadyExists =async (req,res,next) => {
     try {
         const bucketName = req.body.bucketName;
+        
+        if (!bucketName) {
+            return res.json({ status: 400, message: 'Invalid bucket name', success: false });
+        }
+        
         const bucketPath = path.join('buckets',`${bucketName}-${req.session.user.id}`);
-        const bucketExist = await Bucket.findOne({bucketPath: bucketPath});
+        const bucketExist = await Bucket.findOne({bucketPath});
         if(bucketExist){
             return res.json({status:409,message:`Bucket already exists`,success:false});
         }
         next();
     } catch (error) {
-        console.error(error);
         return res.json({status:500,message:"Internal Server Error",success:false});
     }
 }

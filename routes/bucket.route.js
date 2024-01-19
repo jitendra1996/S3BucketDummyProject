@@ -1,7 +1,7 @@
 const router = require('express').Router();
 
 // Bucket controller imports
-const {postCreateBucket,getParticularUserBucketsList,getListOfAllBuckets} = require('../controllers/bucket.controller');
+const {postCreateBucket,getParticularUserBucketsList,getListOfAllBuckets,deleteBucket} = require('../controllers/bucket.controller');
 
 // Middleware imports
 const {isUserAuthorized} = require('../middlewares/user.middleware');
@@ -13,5 +13,7 @@ router.post('/createBucket',isUserAuthorized,isBucketAlreadyExists,postCreateBuc
 router.get('/bucket-list',isUserAuthorized,getParticularUserBucketsList);
 
 router.get('/getAllBucketList',getListOfAllBuckets);
+
+router.delete('/deleteBucket',isUserAuthorized,deleteBucket);
 
 module.exports = router

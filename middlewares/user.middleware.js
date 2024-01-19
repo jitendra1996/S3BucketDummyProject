@@ -35,7 +35,6 @@ exports.isUserExist = async (req,res,next)=>{
         });
         next();
     } catch (error) {
-        console.error("🚀 ~ exports.isUserExist= ~ error:", error)
         return res.json({status:500,message:"Something went wrong",success:false});
     }
 };

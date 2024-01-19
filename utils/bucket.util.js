@@ -1,4 +1,6 @@
 const Bucket = require('../models/bucket.model');
+const fs = require('fs');
+const path = require('path');
 
 
 /**
@@ -48,9 +50,36 @@ exports.modifiedAllBucketListData = (bucketLists,userType='user') => {
  */
 exports.storeBucketDetailsInDB = async (userId,bucketName,bucketPath) => {
     try {
-        const newBucketCreated = new Bucket({userId: userId, bucketName: bucketName, bucketPath: bucketPath});
+        const newBucketCreated = new Bucket({userId, bucketName, bucketPath});
         await newBucketCreated.save();
     } catch (error) {
-        console.error(error);
+        console.log("🚀 ~ exports.storeBucketDetailsInDB= ~ error:", error)
     }
 }
+
+/**
+ * Recursively deletes a folder and all its contents.
+ *
+ * @param {string} directoryPath - The path of the directory to be deleted.
+ * @returns {undefined}
+ *
+ * @example
+ * deleteFolderRecursive('/path/to/folder');
+ *
+ * @throws {Error} If the directoryPath does not exist.
+ */
+exports.deleteFolderRecursive = (directoryPath) => {
+if (fs.existsSync(directoryPath)) {
+    fs.readdirSync(directoryPath).forEach((file, index) => {
+      const curPath = path.join(directoryPath, file);
+      if (fs.lstatSync(curPath).isDirectory()) {
+       // recurse
+        deleteFolderRecursive(curPath);
+      } else {
+        // delete file
+        fs.unlinkSync(curPath);
+      }
+    });
+    fs.rmdirSync(directoryPath);
+  }
+};
